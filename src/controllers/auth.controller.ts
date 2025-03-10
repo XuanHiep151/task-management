@@ -1,39 +1,38 @@
 import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../models/user.model";
+import { UserService } from "../services/user.services";
+export class AuthController {
+  static async register(req: Request, res: Response): Promise<any> {
+    try {
+      const data = req.body;
 
-export const register = async (req: Request, res: Response): Promise<any> => {
-  try {
-    const { username, password, role } = req.body;
+      const createData = await UserService.createUser(data)
+      switch (createData) {
+        case "username":
+          return res.status(400).json({ message: "username đã tồn tại" });
+        case "phone":
+          return res.status(400).json({ message: "số điện thoại đã tồn tại" });
+        default:
+          return res.status(201).json({ message: "Đăng ký thành công" });
+      }
 
-    const existingUser = await User.findOne({ username });
-    if (existingUser) return res.status(400).json({ message: "User already exists" });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  };
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword, role });
+  static async login(req: Request, res: Response): Promise<any> {
+    try {
+      const { username, password } = req.body;
 
-    await user.save();
-    return res.status(201).json({ message: "User registered successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Server error" });
-  }
-};
+      const user = await UserService.getUserByUsernameAndPass(username, password);
+      if (user == null) return res.status(400).json({ message: "Invalid credentials" });
 
-export const login = async (req: Request, res: Response): Promise<any> => {
-  try {
-    const { username, password } = req.body;
+      const token = jwt.sign({ id: user._id, role: user.role, phoneNumber: user.phoneNumber, fullName: user.fullName }, process.env.JWT_SECRET as string, { expiresIn: "1h" });
 
-    const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
-
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET as string, { expiresIn: "1h" });
-
-    return res.json({ token });
-  } catch (error) {
-    return res.status(500).json({ message: "Server error" });
-  }
-};
+      return res.json({ token });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  };
+}

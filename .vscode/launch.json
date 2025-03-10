@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Node.js with TypeScript",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/src/server.ts",
+        "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+        "preLaunchTask": "tsc: build - tsconfig.json",
+        "sourceMaps": true,
+        "restart": true,
+        "env": {
+          "NODE_ENV": "development"
+        }
+      }
+    ]
+  }
+  

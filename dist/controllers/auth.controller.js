@@ -12,40 +12,46 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = void 0;
-const bcryptjs_1 = __importDefault(require("bcryptjs"));
+exports.AuthController = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const user_model_1 = __importDefault(require("../models/user.model"));
-const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { username, password, role } = req.body;
-        const existingUser = yield user_model_1.default.findOne({ username });
-        if (existingUser)
-            return res.status(400).json({ message: "User already exists" });
-        const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
-        const user = new user_model_1.default({ username, password: hashedPassword, role });
-        yield user.save();
-        return res.status(201).json({ message: "User registered successfully" });
+const user_services_1 = require("../services/user.services");
+class AuthController {
+    static register(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const data = req.body;
+                const createData = yield user_services_1.UserService.createUser(data);
+                switch (createData) {
+                    case "username":
+                        return res.status(400).json({ message: "username đã tồn tại" });
+                    case "phone":
+                        return res.status(400).json({ message: "số điện thoại đã tồn tại" });
+                    default:
+                        return res.status(201).json({ message: "Đăng ký thành công" });
+                }
+            }
+            catch (error) {
+                return res.status(500).json({ message: "Server error" });
+            }
+        });
     }
-    catch (error) {
-        return res.status(500).json({ message: "Server error" });
+    ;
+    static login(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { username, password } = req.body;
+                const user = yield user_services_1.UserService.getUserByUsernameAndPass(username, password);
+                if (user == null)
+                    return res.status(400).json({ message: "Invalid credentials" });
+                const token = jsonwebtoken_1.default.sign({ id: user._id, role: user.role, phoneNumber: user.phoneNumber, fullName: user.fullName }, process.env.JWT_SECRET, { expiresIn: "1h" });
+                return res.json({ token });
+            }
+            catch (error) {
+                return res.status(500).json({ message: "Server error" });
+            }
+        });
     }
-});
-exports.register = register;
-const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { username, password } = req.body;
-        const user = yield user_model_1.default.findOne({ username });
-        if (!user)
-            return res.status(400).json({ message: "Invalid credentials" });
-        const isMatch = yield bcryptjs_1.default.compare(password, user.password);
-        if (!isMatch)
-            return res.status(400).json({ message: "Invalid credentials" });
-        const token = jsonwebtoken_1.default.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
-        return res.json({ token });
-    }
-    catch (error) {
-        return res.status(500).json({ message: "Server error" });
-    }
-});
-exports.login = login;
+    ;
+}
+exports.AuthController = AuthController;
+//# sourceMappingURL=auth.controller.js.map

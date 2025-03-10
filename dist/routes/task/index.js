@@ -19,3 +19,4 @@ router.delete("/tasks/:id", (req, res) => {
     res.json({ message: `Xóa task ${req.params.id} thành công` });
 });
 exports.default = router;
+//# sourceMappingURL=index.js.map
